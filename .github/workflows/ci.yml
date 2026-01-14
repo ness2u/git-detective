@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y shellcheck
+          curl -sSLo /usr/local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_amd64
+          chmod +x /usr/local/bin/shfmt
+      - name: Lint (shellcheck)
+        run: shellcheck -S warning git-detective.sh
+      - name: Format check (shfmt)
+        run: |
+          diff -u <(cat git-detective.sh) <(shfmt -i 2 -ci -sr git-detective.sh) || (echo "Run shfmt locally to format" && exit 1)
+      - name: Smoke test
+        run: |
+          chmod +x ./git-detective.sh
+          # Create a tiny fixture repo
+          mkdir -p /tmp/fixture/repo
+          pushd /tmp/fixture/repo
+          git init -q
+          mkdir -p app
+          echo hello > app/file.txt
+          git add .
+          git -c user.email=test@example.com -c user.name=ci commit -m "init" -q
+          popd
+          # Config listing a single AOI
+          printf '%s\n' 'areas_of_interest:' '  - app' > git-detective.yml
+          ./git-detective.sh --root /tmp/fixture --config ./git-detective.yml --since "10 years ago"
