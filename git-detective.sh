@@ -38,7 +38,6 @@ USAGE
 ROOT_DIR=$(pwd)
 CONFIG=""
 SINCE="2 weeks ago"
-INIT_ROOT=false
 
 # Parse args
 while [[ $# -gt 0 ]]; do
